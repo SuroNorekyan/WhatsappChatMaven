@@ -44,7 +44,6 @@ public class ClientHandler extends Thread {
         }
     }
 
-
     private void registerUser() throws IOException {
         out.println("Enter your nickname:");
         nickname = in.readLine();
@@ -80,11 +79,43 @@ public class ClientHandler extends Thread {
             case "PrivateMessage":
                 sendPrivateMessage(parts[1], parts[2]);
                 break;
+            case "SendFile":
+                sendFile(parts[1], parts[2]);
+                break;
             default:
                 out.println("Unknown command. Type /help to see the list of available commands.");
         }
     }
 
+    private void sendFile(String groupName, String filePath) {
+        Group group = groups.get(groupName);
+        if (group != null) {
+            if (group.getClients().contains(this)) {
+                File file = new File(filePath);
+                if (file.exists() && !file.isDirectory()) {
+                    try {
+                        byte[] fileData = Files.readAllBytes(file.toPath());
+                        for (ClientHandler client : group.getClients()) {
+                            client.out.println(nickname + " (group " + groupName + ") is sending a file: " + file.getName());
+                            client.out.println("Receiving file: " + file.getName());
+                            client.out.println("Displaying file content: ");
+                            client.socket.getOutputStream().write(fileData);
+                            client.socket.getOutputStream().flush();
+                        }
+                        out.println(". File " + file.getName() + " successfully sent to group " + groupName);
+                    } catch (IOException e) {
+                        out.println("Error sending file: " + e.getMessage());
+                    }
+                } else {
+                    out.println("File not found: " + filePath);
+                }
+            } else {
+                out.println("You must join this group to send a file.");
+            }
+        } else {
+            out.println("Group not found.");
+        }
+    }
 
     private void displayHelp() {
         out.println("Available commands:");
@@ -94,7 +125,7 @@ public class ClientHandler extends Thread {
         out.println("SendMessage <GroupName> <Message> - Send a message to a group");
         out.println("LeaveGroup <GroupName> - Leave a group");
         out.println("RemoveGroup <GroupName> - Remove a group");
-        out.println("SendFile <FilePath> - Send a file to a group");
+        out.println("SendFile <GroupName> <FilePath> - Send a file to a group");
         out.println("AddUserToGroup <GroupName> <UserName> - Add a user to a group");
         out.println("PrivateMessage <UserName> <Message> - Send a private message to a user");
     }
