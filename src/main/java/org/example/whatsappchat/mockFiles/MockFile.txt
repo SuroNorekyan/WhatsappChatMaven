@@ -1,0 +1,1 @@
+This file can be used to check the execution of the SendFile command!
