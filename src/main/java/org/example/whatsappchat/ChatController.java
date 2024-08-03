@@ -5,11 +5,13 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Controller
+@RequestMapping("/api")
 public class ChatController {
 
     private SimpMessagingTemplate messagingTemplate;
@@ -25,21 +27,19 @@ public class ChatController {
         messagingTemplate.convertAndSend("/topic/" + groupId, message);
     }
 
-    @MessageMapping("/create-group")
-    public void createGroup(ChatMessage message) {
-        String groupName = message.getContent();
+    @PostMapping("/create-group")
+    public void createGroup(@RequestParam String groupName) {
         if (!groups.containsKey(groupName)) {
             groups.put(groupName, new Group(groupName));
             messagingTemplate.convertAndSend("/topic/groups", "Group " + groupName + " created");
         }
     }
 
-    @MessageMapping("/join-group")
-    public void joinGroup(ChatMessage message, SimpMessageHeaderAccessor headerAccessor) {
-        String groupName = message.getContent();
+    @PostMapping("/join-group")
+    public void joinGroup(@RequestParam String groupName, SimpMessageHeaderAccessor headerAccessor) {
         if (groups.containsKey(groupName)) {
             headerAccessor.getSessionAttributes().put("groupId", groupName);
-            messagingTemplate.convertAndSend("/topic/groups", message.getSender() + " joined group " + groupName);
+            messagingTemplate.convertAndSend("/topic/groups", "User joined group " + groupName);
         } else {
             messagingTemplate.convertAndSend("/topic/errors", "Group " + groupName + " not found");
         }
